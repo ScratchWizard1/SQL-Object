@@ -14,12 +14,14 @@ Metody:
             "pasword"->string,
             "dbname"->string,
             );
+        SQL::connect("servername","username","pasword","dbname");
         $object->connect("servername","username","pasword","dbname");
 
     Začiatok tvorby novej tabuľky:
         newtable(
             "name"->string,
         );
+        SQL::newtable("name")
         $object->newtable("name");
     
     Pridanie primary key pri tvorbe tabuľky:
@@ -28,8 +30,8 @@ Metody:
             data_type->boolean, (pri vlastnom dátovom type) || prednastavená hodnota="INT"
             auto_increment->boolean, prednastavená hodnota=true
         );
-        $object->newtable("name")->primarykey()->create();
-        $object->newtable("name")->primarykey("name","data_type",auto_increment)->create();
+        newtable("name")->primarykey();
+        newtable("name")->primarykey("name","data_type",auto_increment);
     
     Pridanie foreign key pri tvorbe tabuľky:
         foreignkey(
@@ -37,34 +39,45 @@ Metody:
             "data_type"->string, prednastavená hodnota="INT"
             "referencetable"->string,
             "referencecolumn"->string,
-        $object->newtable("name")->foreignkey("name","data_type","referencetable","referencecolumn")->create();
+        newtable("name")->foreignkey("name","data_type","referencetable","referencecolumn");
 
-    Pridanie stĺpca pri tvorbe tabuľky alebo pridanie stĺpca do už existujucej tabuľky:
+    Pridanie stĺpca pri tvorbe tabuľky:
         column(
             "name"->string,
             "data_type"->string,
             NotNull->boolean, prednastavená hodnota=false (hodnoty môžu byť NULL)
             Unique->boolean, prednastavená hodnota=false
             "default"->string, prednastavená hodnota=""
-            "addtoexisttable"->string, (pridá daný stĺpec do existujucej tabuľky) || prednastavená hodnota=""
         );
-        $object->newtable("name")->column("name","data_type")->create();
-        $object->newtable("name")->column("name","data_type",NotNull, Unique, "default")->create();
-        $object->column("name","data_type",NotNull, Unique, "default","addtoexisttable");
+        newtable("name")->column("name","data_type")->create();
+        newtable("name")->column("name","data_type",NotNull, Unique, "default")->create();
+
+    Pridanie stĺpca do už existujucej tabuľky:
+        addcolumn(
+            "table"->string,
+            "name"->string,
+            "data_type"->string,
+            NotNull->boolean, prednastavená hodnota=false (hodnoty môžu byť NULL)
+            Unique->boolean, prednastavená hodnota=false
+            "default"->string, prednastavená hodnota=""
+        );
+        SQL::addcolumn("table",name","data_type");
+        
+
     
     Ziskanie kódu zostavenej tabuľky bez jej vytvorenia, vracia string s codom pre tabuľku:
-        getNewTable();
-        echo $object->getNewTable();
+        showNewTable();
+        echo SQL::newtable("name")->column("name","data_type")->showNewTable();
 
     Vytvorenie novej tabuľky:
         create();
-        $object->newtable("name")->column("name","data_type")->create();
+        SQL::newtable("name")->column("name","data_type")->create();
     
     Úplné a nenávratné odstranenie tabuľky aj napriek foreign key:
         droptable(
             "nazov"->string,
         );
-        $object->droptable("name");
+        SQL::droptable("name");
 
     Vloženie údajov do tabuľky:
         insert(
@@ -72,15 +85,15 @@ Metody:
             [column]->array, (pre 2 a viac stlpcov) || "column"->string (pre jeden stlpec)
             [data]->array, (pre vloženie viacerých údajov do jedneho riadka) || "column"->string (pre jeden údaj) || [[data]]-> 2D array (pre vloženie viac riadkov)
             );
-        $object->insert("table",[column],[data]);
+        SQL::insert("table",[column],[data]);
 
     Spustenie selectu vracia array alebo 2D array pri viac riadkoch:
-        runQuery();
-        $values = $object->select()->runQuery();
+        getQuery();
+        $values = SQL::select()->getQuery();
     
     Ziskanie zostaveného selectu bez jeho spustenia, vracia string so selectom:
-        getQuery();
-        echo $object->getQuery();
+        showQuery();
+        echo SQL::select()->showQuery();
 
     Zakladný select:
         select(
@@ -88,28 +101,47 @@ Metody:
             [column]->array, (pre 2 a viac stlpcov) || "column"->string (pre jeden stlpec) || prednastavená hodnota="*"
             "AGG"->string, (pre pridanie agregačných funkcii k už daným stlpcom (viď nižšie)) || prednastavená hodnota=""
         );
-        $values = $object->select("table")->runQuery();
-        $values = $object->select("table",[column])->runQuery();
-        $values = $object->select("table",[column],"AGG")->runQuery();
+        $values = SQL::select("table")->getQuery();
+        $values = SQL::select("table",[column])->getQuery();
+        $values = SQL::select("table",[column],"AGG")->getQuery();
     
-    Pridavanie podmienok pre select pri opakovanom použiti v jednom selecte sa použije spojka AND:
+    Pridavanie joinu do selectu:
+        join(
+                "from_table"->string, prednastavená hodnota=tabuľka v selecte
+                "$from_column"->string,
+                "to_table"->string,
+                "to_column"->string,
+                "method"->string, prednastavená hodnota="INNER" ("INNER","RIGHT","LEFT")
+            );
+        select("table")->join("","from_column","to_table","to_column")->getQuery();
+        select("table")->join("from_table","from_column","to_table","to_column")->getQuery();
+        select("table")->join("from_table","from_column","to_table","to_column","method")->getQuery();
+    
+    Pridavanie full joinu do selectu:
+    fulljoin(
+            "to_table"->string,
+            );
+        select("table")->fulljoin("to_table")->getQuery();
+
+    
+    Pridavanie podmienok pre select pri opakovanom použiti v jednom selecte sa použije nastavený logicky operator:
         where(
             "column"->string, 
-            "operator"->string,
             "value"->string, (pre string) || value->int (pre čislo)
+            "operator"->string, (operatorý: =, >, <, != ) || prednastavená hodnota="="
             "logical_operator"->string, (logické operatorý: AND, OR, NOT, ORNOT) || prednastavená hodnota="AND"
         );
-        $values = $object->select()->where("column","operator","value")->runQuery();
-        $values = $object->select()->where("column","operator","value")->where("column","operator","value")->runQuery();
-        $values = $object->select()->where("column","operator","value","logical_operator")->where("column","operator","value","logical_operator")->runQuery();
+        select()->where("column","operator","value")->getQuery();
+        select()->where("column","operator","value")->where("column","operator","value")->getQuery();
+        select()->where("column","operator","value","logical_operator")->where("column","operator","value","logical_operator")->getQuery();
 
     Zoradenie výsledkov selectu:
         order(
             "column"->string,
             "direction"->string (poradie zoradenia ASC- vzostupne a DESC- zostupne) || prednastavená hodnota="ASC"
         );
-        $values = $object->select()->order("column")->runQuery();
-        $values = $object->select()->order("column","direction")->runQuery();
+        select()->order("column")->getQuery();
+        select()->order("column","direction")->getQuery();
     
     Agregačné funkcie: - vkladáme ako STRING buď do miesta pre stlpec (column) v select alebo ako treti parameter v select
         "MIN(column)",
@@ -123,38 +155,39 @@ Metody:
         group(
             "column"->string,
         );
-        $values = $object->select("table",[column],"AGG")->group("column")->runQuery();
+        select("table",[column],"AGG")->group("column")->getQuery();
 
     Limit maximalne koľko udajov sa vytiahne:
         limit(
             limit->int,
         );
-        $values = $object->select()->limit(2)->runQuery();
+        select()->limit(2)->getQuery();
 
 
 */ 
 class SQL{
-    private $connect;
+    private static $connect;
     private $query;
     private $newtable;
 
     //-----------------------------Metody pre SQL----------------------------------//
     
     //Pripojenie na databázu
-    public function connect($servername,$username,$pasword,$dbname){
+    public static function connect($servername,$username,$pasword,$dbname){
         $connect= new mysqli($servername,$username,$pasword,$dbname); 
         $connect->set_charset("utf8"); 
         if($connect->connect_error){
             die("Connection failed:" . $connect->connect_error);
         } else{
-            $this->connect=$connect;
+            self::$connect=$connect;
         }
     }
 
     //Začiatok tvorby novej tabuľky
-    public function newtable($name){
-        $this->newtable="CREATE TABLE $name";
-        return $this;
+    public static function newtable($name){
+        $inst= new self();
+        $inst->newtable="CREATE TABLE $name";
+        return $inst;
     }
 
     //Pridanie primary key pre tabuľku
@@ -170,25 +203,29 @@ class SQL{
     }
 
     //Pridavanie stlpcou pri vytvaraní novej tabuľky
-    public function column($name,$data_type,$NotNull=false,$Unique=false,$default="",$addtoexisttable=""){
+    public  function column($name,$data_type,$NotNull=false,$Unique=false,$default=""){      
         $data_type=strtoupper($data_type);
         $NotNull=$this->nullcontrol($NotNull);
         $Unique=$this->uniquecontrol($Unique);
         $default=$this->defaultcontrol($default);
-        if(strlen($addtoexisttable)==0){
-            if(strpos($this->newtable,"(")==false){
-                $this->newtable.="($name $data_type $NotNull $Unique $default";
-            }else{
-                $this->newtable.=", $name $data_type $NotNull $Unique $default";
-            }
+        if(strpos($this->newtable,"(")==false){
+            $this->newtable.="($name $data_type $NotNull $Unique $default";
         }else{
-            $this->connect->query("ALTER TABLE $addtoexisttable ADD $name $data_type $NotNull $Unique $default");
+            $this->newtable.=", $name $data_type $NotNull $Unique $default";
         }
         return $this;
     }
+    public static  function addcolumn($table,$name,$data_type,$NotNull=false,$Unique=false,$default=""){      
+        $data_type=strtoupper($data_type);
+        $inst = new self();
+        $NotNull=$inst->nullcontrol($NotNull);
+        $Unique=$inst->uniquecontrol($Unique);
+        $default=$inst->defaultcontrol($default);
+        self::$connect->query("ALTER TABLE $table ADD $name $data_type $NotNull $Unique $default");
+    }
 
     //Pridavanie foreign key pri vytvaraní novej tabuľky
-    public function foreignkey($name,$data_type="INT",$referencetable,$referencecolumn){
+    public function foreignkey($name,$referencetable,$referencecolumn,$data_type="INT"){
         if(strpos($this->newtable,"(")==false){
             $this->newtable.="($name $data_type, FOREIGN KEY ($name) REFERENCES $referencetable($referencecolumn)";
         }else{
@@ -198,7 +235,7 @@ class SQL{
     }
 
      //Ziskanie sql kodu k novej tabuľke
-     public function getNewTable(){
+     public function showNewTable(){
         $newtable=$this->newtable.")";
         $this->newtable="";
         return $newtable;
@@ -208,42 +245,56 @@ class SQL{
     public function create(){
         $newtable=$this->newtable.")";
         $this->newtable="";
-        $this->connect->query($newtable);
+        self::$connect->query($newtable);
     }
 
     //Vymazanie tabuľky
-    public function droptable($nazov){
-        $this->connect->query("SET FOREIGN_KEY_CHECKS = 0");
-        $this->connect->query("DROP TABLE $nazov");
-        $this->connect->query("SET FOREIGN_KEY_CHECKS = 1");
+    public static function droptable($nazov){
+        self::$connect->query("SET FOREIGN_KEY_CHECKS = 0");
+        self::$connect->query("DROP TABLE $nazov");
+        self::$connect->query("SET FOREIGN_KEY_CHECKS = 1");
     }
     
     //Vloženie udajov do tabuľky
-    public function  insert($table,$column,$data){
-        $column= $this->columncontrol($column);
-        $data= $this->datacontrol($data);
-        mysqli_query($this->connect,"INSERT INTO $table $column VALUES $data;");
+    public static function  insert($table,$column,$data){
+        $inst = new self();
+        $column= $inst->columncontrol($column);
+        if (!is_numeric($data)){
+            if (is_array($data[0])){
+                $data= $inst->datacontrol($data);
+            } else{
+                $data= $inst->datacontrol($data);
+                $data= $inst->insert_control($data);
+            }
+        }else{
+            $data="(".$data.")";
+        }
+        mysqli_query(self::$connect,"INSERT INTO $table $column VALUES $data;");
     }
 
     //Ziskanie selectu
-    public function getQuery(){
-        $query=$this->query;
-        $this->query="";
-        return $query;
+    public function showQuery(){
+        return $this->query;
     }
     
     //Spustenie vyberania udajov z tabuľky
-    public function runQuery(){
+    public function getQuery(){
         $rows=[];
-        $object_mysqli_result = $this->connect->query($this->query);
+        $object_mysqli_result = self::$connect->query($this->query);
         $this->query="";
         if ($object_mysqli_result->num_rows==1){
             if ($object_mysqli_result->field_count!=1){
                 return $object_mysqli_result->fetch_assoc();
             } else{
-                $str=$this->arraytostringdata($object_mysqli_result->fetch_assoc());
-                $str=substr($str, 2, -2);
-                return $str;
+                foreach ($object_mysqli_result->fetch_assoc() as $key => $value){
+                    if (!is_numeric($value)){
+                        $str=$this->arraytostringdata($object_mysqli_result->fetch_assoc());
+                        $str=substr($str, 2, -2);
+                        return $str;
+                    } else {
+                        return $value;
+                    }
+                }
             }
         } else{
             for($i=0;$i<($object_mysqli_result->num_rows);$i++){
@@ -254,21 +305,34 @@ class SQL{
     }
 
     //Vyberanie udajov z tabuľky
-    public function select($table,$columns="*",$AGG=""){
-        $column= $this->columncontrol($columns);
+    public static function select($table,$columns="*",$AGG=""){
+        $inst= new self();
+        $column= $inst->columncontrol($columns);
         $column=substr(substr($column,0,-1),1,);
         if($column=="*" && $AGG!=""){
-            $this->query="SELECT $AGG FROM $table";
+            $inst->query="SELECT $AGG FROM $table";
         } else if($AGG!=""){
-            $this->query="SELECT $column,$AGG FROM $table";
+            $inst->query="SELECT $column,$AGG FROM $table";
         } else{
-            $this->query="SELECT $column FROM $table";
+            $inst->query="SELECT $column FROM $table";
         }
+        return $inst;
+    } 
+    //Pridanie Joinu do selectu
+    public function join($from_table="this_table",$from_column,$to_table,$to_column,$method="INNER"){
+        $from_table=$this->tablecontrol($from_table);
+        $method=$this->method_coltrol($method);
+        $this->query.=" $method JOIN $to_table ON ".$from_table.".$from_column = $to_table.$to_column";
+        return $this;
+    }
+    //Pridanie Full Joinu do selectu
+    public function fulljoin($to_table){
+        $this->query.=" FULL JOIN $to_table";
         return $this;
     }
 
     //Podmienky pri vyberani udajov z tabuľky musí byť po select()
-    public function where($column,$operator,$value,$logical_operator="AND"){
+    public function where($column,$value,$operator="=",$logical_operator="AND"){
         $value=$this->datacontrol($value);
         if(strpos($this->query,"WHERE")!==false){
             if (strtoupper($logical_operator)=="AND"){
@@ -381,6 +445,19 @@ class SQL{
         return "(".$str.")";
     }
 
+    //uprava insert value dat
+    private function insert_control($datas){
+        $datas=substr($datas,0,-1);
+        $datas=substr($datas,1);
+        $data=explode(",",$datas);
+        $str="";
+        foreach($data as $word){
+            $str.="($word),";
+        }
+        $str=substr($str,0,-1);
+        return $str;
+    }
+
     //Zisťovanie či je povolená hodnota NULL v stlpcoch
     private function nullcontrol($NotNull){
         if($NotNull==false){
@@ -417,12 +494,46 @@ class SQL{
         }
     }
 
+    //Ziskanie akutalnej tabuľky z Query
+    private function from_table(){
+        $check = explode(" ",self::showQuery());
+        for($i=0;$i<count($check);$i++){
+            if ($check[$i]=="FROM"){
+                return $check[$i+1];
+            }
+        }
+    }
+    //Method coltrol
+    private function method_coltrol($method){
+        $method=strtoupper($method);
+        switch($method){
+            case "LEFT":
+                return "LEFT";
+            case "RIGHT":
+                return "RIGHT";
+            default:
+                return "INNER";
+        }
+    }
+
+    //Zistovanie from tabuľky v joine
+    private function tablecontrol($table){
+        $table=str_replace(" ", "", $table);
+        if ($table=="this_table"){
+            return $this->from_table();
+        }else if($table==""){
+            return $this->from_table();
+        } else{
+            return $table;
+        }
+    }
+
 }
 
 //Moje testovanie
-$db = new SQL();
-$db->connect("zenit.ta.sk","zenit11","cRe9JC2P","zenit11");
-
-
-
+// SQL::connect("localhost","root","","r3-prax");
+// print_r(SQL::select("pokus")->showQuery());
+// $sql= new SQL;
+// $sql->connect("localhost","root","","r2-lekarske_osetrenie");
+// print_r($sql->select("lekar")->showQuery());
 ?> 
