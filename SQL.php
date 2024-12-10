@@ -3,8 +3,8 @@
 --------------------------------------------Objekt na prácu s databazov------------------------------------------------------
 Metody:
     [Stručný popis čo metoda robí]
-        [nazov medory]
-            [atribut]->[V akom datovom typu je vstup] (kedy by sa mal použivať daný datový tap) || ďalšie možné vstupné datové typi
+        [nazov metódy]
+            [Atribút]->[V akom datovom typeje vstup] (kedy by sa mal použivať daný datový typ) || ďalšie možné vstupné datové typy
         [zapis pre použitie]
 
     Pripojenie na databázu:
@@ -531,9 +531,6 @@ class SQL{
 }
 
 //Moje testovanie
-// SQL::connect("localhost","root","","r3-prax");
-// print_r(SQL::select("pokus")->showQuery());
-// $sql= new SQL;
-// $sql->connect("localhost","root","","r2-lekarske_osetrenie");
-// print_r($sql->select("lekar")->showQuery());
+// SQL::connect("localhost","root","","r3-prax-sql-object");
+// print_r(SQL::select("pokus")->getQuery());
 ?> 
